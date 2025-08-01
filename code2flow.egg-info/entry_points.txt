@@ -1,0 +1,2 @@
+[console_scripts]
+code2flow = code2flow.engine:main

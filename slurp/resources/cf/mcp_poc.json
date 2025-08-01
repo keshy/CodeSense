@@ -1,0 +1,317 @@
+{
+  "graph": {
+    "directed": true,
+    "nodes": {
+      "node_3beb8b5f": {
+        "uid": "node_3beb8b5f",
+        "label": "0: (global)()",
+        "name": "mcp_client::(global)",
+        "parent": "mcp_client",
+        "is_leaf": false,
+        "is_trunk": true,
+        "source_code": null,
+        "variables": [
+          "os->UNKNOWN_MODULE",
+          "ClientSession->UNKNOWN_MODULE",
+          "StdioServerParameters->UNKNOWN_MODULE",
+          "stdio_client->UNKNOWN_MODULE",
+          "asyncio->UNKNOWN_MODULE",
+          "genai->UNKNOWN_MODULE",
+          "types->UNKNOWN_MODULE",
+          "Tool->UNKNOWN_MODULE",
+          "FunctionDeclaration->UNKNOWN_MODULE",
+          "server_params-><Call owner_token=None token=StdioServerParameters>",
+          "gemini_api_key-><Call owner_token=os token=getenv>",
+          "genai_client-><Call owner_token=genai token=Client>"
+        ]
+      },
+      "node_ee017533": {
+        "uid": "node_ee017533",
+        "label": "38: call_gemini()",
+        "name": "mcp_client::call_gemini",
+        "parent": "mcp_client",
+        "is_leaf": true,
+        "is_trunk": false,
+        "source_code": "async def call_gemini(contents, config: types.GenerateContentConfig) -> types.GenerateContentResponse:\n    return genai_client.models.generate_content(\n        model=\"gemini-2.0-flash-001\",\n        contents=[x for x in contents if not x.parts or not x.parts[0].function_call],\n        config=config\n    )",
+        "variables": []
+      },
+      "node_a1ea230a": {
+        "uid": "node_a1ea230a",
+        "label": "18: clean_schema()",
+        "name": "mcp_client::clean_schema",
+        "parent": "mcp_client",
+        "is_leaf": false,
+        "is_trunk": false,
+        "source_code": "def clean_schema(schema):\n    if isinstance(schema, dict):\n        schema.pop(\"title\", None)\n        if \"properties\" in schema and isinstance(schema[\"properties\"], dict):\n            for key in schema[\"properties\"]:\n                schema[\"properties\"][key] = clean_schema(schema[\"properties\"][key])\n\n    return schema",
+        "variables": []
+      },
+      "node_e3942b0b": {
+        "uid": "node_e3942b0b",
+        "label": "28: convert_tools_to_gemini_format()",
+        "name": "mcp_client::convert_tools_to_gemini_format",
+        "parent": "mcp_client",
+        "is_leaf": false,
+        "is_trunk": false,
+        "source_code": "def convert_tools_to_gemini_format(mcptools):\n    gemini_tools = []\n    for tool in mcptools.tools:\n        params = clean_schema(tool.inputSchema)\n        function_declaration = FunctionDeclaration(name=tool.name, description=tool.description, parameters=params)\n        gemini_tool = Tool(function_declarations=[function_declaration])\n        gemini_tools.append(gemini_tool)\n    return gemini_tools",
+        "variables": [
+          "params-><Call owner_token=None token=clean_schema>",
+          "function_declaration-><Call owner_token=None token=FunctionDeclaration>",
+          "gemini_tool-><Call owner_token=None token=Tool>"
+        ]
+      },
+      "node_1f2a619a": {
+        "uid": "node_1f2a619a",
+        "label": "46: get_prompt()",
+        "name": "mcp_client::get_prompt",
+        "parent": "mcp_client",
+        "is_leaf": true,
+        "is_trunk": false,
+        "source_code": "async def get_prompt(user_message, message_history):\n    return f\"\"\"\n            Given the new user message in <USER_MESSAGE> below - process the message in context of history from that user as indicated from the list of past messages in <PAST_MESSAGES_CONTEXT_LIST> \n            <PAST_MESSAGES_CONTEXT_LIST>\n                {message_history}\n            </PAST_MESSAGES_CONTEXT_LIST>\n\n            <USER_MESSAGE>\n                {user_message}\n            </USER_MESSAGE>\n        \"\"\"",
+        "variables": []
+      },
+      "node_385e0f99": {
+        "uid": "node_385e0f99",
+        "label": "59: run()",
+        "name": "mcp_client::run",
+        "parent": "mcp_client",
+        "is_leaf": false,
+        "is_trunk": false,
+        "source_code": "async def run():\n    message_history = []\n    # Start the server as a subprocess and get stdio read/write functions\n    async with stdio_client(server_params) as (read, write):\n        # Create a client session to communicate with the server\n        async with ClientSession(read, write) as session:\n            # Initialize the connection to the server\n            await session.initialize()\n\n            # List available tools to confirm what\u2019s there\n            tools = await session.list_tools()\n            gemini_tools = convert_tools_to_gemini_format(tools)\n\n            user_input = input(\"Ask me anything\\n...\")\n            message_history.append(user_input)\n            prompt = await get_prompt(user_input, message_history)\n            user_prompt = types.Content(role=\"user\", parts=[types.Part.from_text(text=prompt)])\n            content_provider = [user_prompt]\n            while True:\n                if user_input == 'exit':\n                    break\n                response = await call_gemini(content_provider, types.GenerateContentConfig(tools=gemini_tools))\n                # check if there are candidate func calls\n                func_calls = []\n                for candidate in response.candidates:\n                    if candidate.content.parts and candidate.content.parts[0].function_call:\n                        func_calls.append((candidate.content.role, len(candidate.content.parts),\n                                           candidate.content.parts[0].function_call))\n\n                if len(func_calls) == 0:\n                    # reached end\n                    print(response.candidates[0].content.role + ': ' + response.candidates[0].content.parts[0].text)\n                    message_history.append(response.candidates[0].content.parts[0].text)\n                    user_input = input(\"User Input: \")\n                    message_history.append(user_input)\n                    prompt = await get_prompt(user_input, message_history)\n                    content_provider = [types.Content(role=\"user\", parts=[types.Part.from_text(text=prompt)])]\n                else:\n                    # execute function call\n                    f_name = func_calls[0][2].name\n                    f_args = func_calls[0][2].args\n                    try:\n                        result = await session.call_tool(name=f_name, arguments=f_args)\n                        f_response = {'result': result.content}\n                    except Exception as e:\n                        f_response = {'error': str(e)}\n                    f_response_part = types.Part.from_function_response(name=f_name, response=f_response)\n                    # create as many parts as request\n                    f_remaining_parts = [types.Part.from_text(text=\"n/a\") for x in range(0, func_calls[0][1])]\n                    f_parts = [content_provider[0].parts[0], f_response_part] + f_remaining_parts\n                    f_response_content = types.Content(role='tool', parts=f_parts)\n                    content_provider = [f_response_content]",
+        "variables": [
+          "gemini_tools-><Call owner_token=None token=convert_tools_to_gemini_format>",
+          "user_input-><Call owner_token=None token=input>",
+          "user_prompt-><Call owner_token=types token=Content>",
+          "user_input-><Call owner_token=None token=input>",
+          "f_response_part-><Call owner_token=types token=from_function_response>",
+          "f_response_content-><Call owner_token=types token=Content>"
+        ]
+      },
+      "node_ffba6513": {
+        "uid": "node_ffba6513",
+        "label": "0: (global)()",
+        "name": "mcp_server::(global)",
+        "parent": "mcp_server",
+        "is_leaf": false,
+        "is_trunk": true,
+        "source_code": null,
+        "variables": [
+          "FastMCP->UNKNOWN_MODULE",
+          "server-><Call owner_token=None token=FastMCP>"
+        ]
+      },
+      "node_e5f4f3e8": {
+        "uid": "node_e5f4f3e8",
+        "label": "0: (global)()",
+        "name": "nap::(global)",
+        "parent": "nap",
+        "is_leaf": false,
+        "is_trunk": true,
+        "source_code": null,
+        "variables": [
+          "nx->UNKNOWN_MODULE",
+          "random->UNKNOWN_MODULE",
+          "math->UNKNOWN_MODULE",
+          "deque->UNKNOWN_MODULE"
+        ]
+      },
+      "node_855c5929": {
+        "uid": "node_855c5929",
+        "label": "97: calculate_hops_to_crown_jewel()",
+        "name": "nap::calculate_hops_to_crown_jewel",
+        "parent": "nap",
+        "is_leaf": true,
+        "is_trunk": false,
+        "source_code": "def calculate_hops_to_crown_jewel(G):\n    \"\"\"\n    Calculates the shortest path (in hops) from every node to any crown jewel.\n    This simulates a BFS-like Pregel algorithm [14, 16].\n    \"\"\"\n    crown_jewels = [n for n, data in G.nodes(data=True) if data['is_crown_jewel']]\n    if not crown_jewels:\n        print(\"Warning: No crown jewels defined in the graph. Hops to crown jewel will remain infinity.\")\n        return\n\n    # Initialize all nodes with infinite hops\n    for node_id in G.nodes:\n        G.nodes[node_id]['hops_to_crown_jewel'] = float('inf')\n\n    # Use a multi-source BFS approach\n    queue = deque()\n    visited = set()\n\n    for cj_id in crown_jewels:\n        # Hops from crown jewel to itself is 0\n        G.nodes[cj_id]['hops_to_crown_jewel'] = 0\n        queue.append((cj_id, 0))  # (node_id, current_hops)\n        visited.add(cj_id)\n\n    while queue:\n        current_node, current_hops = queue.popleft()\n\n        # Propagate to neighbors (considering incoming edges for \"hops TO crown jewel\") [14]\n        for neighbor in G.predecessors(current_node):  # Look at nodes that can reach current_node\n            if neighbor not in visited:\n                G.nodes[neighbor]['hops_to_crown_jewel'] = current_hops + 1\n                visited.add(neighbor)\n                queue.append((neighbor, current_hops + 1))\n\n    print(\"Hops to Crown Jewel calculated for all nodes.\")",
+        "variables": [
+          "queue-><Call owner_token=None token=deque>",
+          "visited-><Call owner_token=None token=set>"
+        ]
+      },
+      "node_12e38d03": {
+        "uid": "node_12e38d03",
+        "label": "136: calculate_node_risk_score()",
+        "name": "nap::calculate_node_risk_score",
+        "parent": "nap",
+        "is_leaf": true,
+        "is_trunk": false,
+        "source_code": "def calculate_node_risk_score(node_id, G):\n    \"\"\"\n    Calculates the Risk Score (Rvi) for a given node using the formula from the paper [15].\n    Rvi = (1 + \u03b2F \u00b7 SF(vi) + \u03b2I \u00b7 SI(vi)) \u00b7 (1 + \u03b2E \u00b7 Evi) \u00b7 e\u2212\u03bbHvi\n    \"\"\"\n    node_data = G.nodes[node_id]\n\n    # Calculate Severity of Local Findings (SF(vi)) [9]\n    sf_vi = sum(SEVERITY_RANK_MAP.get(f['severity'], 0) for f in node_data['findings'])\n\n    # Calculate Severity of Active Incidents (SI(vi)) [10]\n    si_vi = sum(SEVERITY_RANK_MAP.get(i['severity'], 0) for i in node_data['incidents'])\n\n    # Exploitability Score (Evi) [10] - simplified for prototype\n    evi = node_data['exploitability_score']\n\n    # Hops to Crown Jewel (Hvi) [14]\n    hvi = node_data['hops_to_crown_jewel']\n\n    # Apply the formula [15]\n    term1 = (1 + BETA_F * sf_vi + BETA_I * si_vi)  # Inherent risk from findings and incidents [11]\n    term2 = (1 + BETA_E * evi)  # Amplifies risk based on exploitability [12]\n    term3 = math.exp(-LAMBDA * hvi)  # Exponential decay based on distance to crown jewel [13]\n\n    # Handle cases where hvi is infinity (unreachable crown jewel) [13, 14]\n    if hvi == float('inf'):\n        term3 = 0  # Risk approaches 0 if no crown jewel is reachable\n\n    rvi = term1 * term2 * term3\n    return rvi",
+        "variables": [
+          "sf_vi-><Call owner_token=None token=sum>",
+          "si_vi-><Call owner_token=None token=sum>",
+          "term3-><Call owner_token=math token=exp>"
+        ]
+      },
+      "node_9276b32a": {
+        "uid": "node_9276b32a",
+        "label": "24: create_synthetic_cloud_graph()",
+        "name": "nap::create_synthetic_cloud_graph",
+        "parent": "nap",
+        "is_leaf": true,
+        "is_trunk": false,
+        "source_code": "def create_synthetic_cloud_graph(num_nodes=50, num_crown_jewels=3, avg_degree=3):\n    \"\"\"\n    Generates a synthetic directed cloud environment graph.\n    Nodes represent assets, edges represent connections/attack paths.\n    \"\"\"\n    G = nx.DiGraph()\n    asset_types = [\"EC2\", \"RDS\", \"S3\", \"IAM_User\", \"IAM_Role\", \"Lambda\", \"VPC\"]\n    connection_types = [\"network_access\", \"identity_assume\", \"config_access\", \"data_transfer\"]\n\n    print(f\"Generating a synthetic graph with {num_nodes} nodes and an average degree of {avg_degree}...\")\n\n    # Add nodes\n    for i in range(num_nodes):\n        node_id = f\"asset_{i}\"\n        node_type = random.choice(asset_types)\n        G.add_node(node_id,\n                   type=node_type,\n                   name=f\"{node_type}_{i}\",\n                   is_crown_jewel=False,  # Initial state\n                   findings=[],\n                   incidents=[],\n                   exploitability_score=random.uniform(0.1, 0.9),  # Simplified Evi [10]\n                   hops_to_crown_jewel=float('inf'),  # To be computed [14]\n                   risk_score=0.0  # To be computed [3, 15]\n                   )\n\n    # Add edges\n    for node_id in G.nodes:\n        potential_neighbors = [n for n in G.nodes if n != node_id]\n        if not potential_neighbors: continue\n\n        num_edges = random.randint(1, avg_degree * 2 // 2)  # Randomly vary connections\n        for _ in range(num_edges):\n            target_node = random.choice(potential_neighbors)\n            if not G.has_edge(node_id, target_node):  # Avoid duplicate edges\n                G.add_edge(node_id, target_node, connection_type=random.choice(connection_types))\n                # Consider adding reverse edges for some connection types if movement is bidirectional\n                if random.random() < 0.3:  # 30% chance of bidirectional connection\n                    G.add_edge(target_node, node_id, connection_type=random.choice(connection_types))\n\n    # Designate Crown Jewels [2, 14]\n    crown_jewel_candidates = [n for n, data in G.nodes(data=True) if data['type'] in [\"RDS\", \"S3\"]]\n    if len(crown_jewel_candidates) < num_crown_jewels:\n        crown_jewel_candidates = list(G.nodes)  # Fallback to any node if not enough specific types\n\n    selected_crown_jewels = random.sample(crown_jewel_candidates, min(num_crown_jewels, len(crown_jewel_candidates)))\n    for cj_id in selected_crown_jewels:\n        G.nodes[cj_id]['is_crown_jewel'] = True\n        print(f\"  - Designated Crown Jewel: {cj_id} ({G.nodes[cj_id]['type']})\")\n\n    # Add some initial synthetic findings and incidents [9, 10]\n    for node_id in G.nodes:\n        # Add random findings\n        num_findings = random.randint(0, 3)\n        for _ in range(num_findings):\n            G.nodes[node_id]['findings'].append({\n                \"description\": f\"Misconfig {random.randint(1, 10)}\",\n                \"severity\": random.choice(list(SEVERITY_RANK_MAP.keys()))\n            })\n\n        # Add initial random incidents for a few nodes\n        if random.random() < 0.05:  # 5% of nodes start with an incident\n            G.nodes[node_id]['incidents'].append({\n                \"description\": \"Suspicious login initial\",\n                \"severity\": random.choice([\"Medium\", \"High\", \"Critical\"])\n            })\n\n    print(f\"Graph generated with {G.number_of_nodes()} nodes and {G.number_of_edges()} edges.\")\n    return G",
+        "variables": [
+          "G-><Call owner_token=nx token=DiGraph>",
+          "node_type-><Call owner_token=random token=choice>",
+          "num_edges-><Call owner_token=random token=randint>",
+          "target_node-><Call owner_token=random token=choice>",
+          "crown_jewel_candidates-><Call owner_token=None token=list>",
+          "selected_crown_jewels-><Call owner_token=random token=sample>",
+          "num_findings-><Call owner_token=random token=randint>"
+        ]
+      },
+      "node_d987daff": {
+        "uid": "node_d987daff",
+        "label": "177: display_leaderboard()",
+        "name": "nap::display_leaderboard",
+        "parent": "nap",
+        "is_leaf": true,
+        "is_trunk": false,
+        "source_code": "def display_leaderboard(G, top_n=10):\n    \"\"\"Displays the top N riskiest assets.\"\"\"\n    print(\"\\n--- Current Risk Leaderboard (Top Most Likely Next Targets) ---\")\n    sorted_nodes = sorted(G.nodes(data=True), key=lambda item: item[1]['risk_score'], reverse=True)\n\n    header = f\"{'Rank':<5} | {'Node ID':<15} | {'Type':<10} | {'Risk Score':<12} | {'Hops to CJ':<12} | {'Active Incidents':<16} | {'Findings':<10}\"\n    print(header)\n    print(\"-\" * len(header))\n\n    rank = 1\n    for node_id, data in sorted_nodes:\n        if data['risk_score'] <= 0 and rank > 1:  # Stop if scores drop to 0 after first item\n            break\n        cj_hops_display = f\"{int(data['hops_to_crown_jewel'])}\" if data['hops_to_crown_jewel'] != float('inf') else \"\u221e\"\n        print(\n            f\"{rank:<5} | {node_id:<15} | {data['type']:<10} | {data['risk_score']:<12.4f} | {cj_hops_display:<12} | {len(data['incidents']):<16} | {len(data['findings']):<10}\")\n        rank += 1\n        if rank > top_n:\n            break\n    print(\"-\" * len(header))",
+        "variables": [
+          "sorted_nodes-><Call owner_token=None token=sorted>"
+        ]
+      },
+      "node_88905ee5": {
+        "uid": "node_88905ee5",
+        "label": "235: run_prototype()",
+        "name": "nap::run_prototype",
+        "parent": "nap",
+        "is_leaf": false,
+        "is_trunk": false,
+        "source_code": "def run_prototype():\n    \"\"\"Main function to run the simulation.\"\"\"\n    print(\"--- Starting Cloud Security Next Attack Prediction Prototype ---\")\n    print(\"This prototype simulates a graph-based system for anticipating attacker moves based on real-time data.\")\n\n    # Generate initial graph and data\n    G = create_synthetic_cloud_graph(num_nodes=50, num_crown_jewels=3, avg_degree=3)\n\n    # Pre-compute Hops to Crown Jewel\n    calculate_hops_to_crown_jewel(G)\n\n    # Initial risk score calculation\n    update_all_risk_scores(G)\n\n    # Main simulation loop\n    while True:\n        display_leaderboard(G)\n\n        print(\"\\n--- Simulation Options ---\")\n        print(\"1. Simulate a new ACTIVE INCIDENT on an asset.\")\n        print(\"2. Simulate a new FINDING (vulnerability/misconfiguration) on an asset.\")\n        print(\"Q. Quit.\")\n\n        choice = input(\"Enter your choice: \").strip().lower()\n\n        if choice == '1':\n            if simulate_incident(G):\n                update_all_risk_scores(G)  # Re-calculate scores after event\n        elif choice == '2':\n            if simulate_new_finding(G):\n                update_all_risk_scores(G)  # Re-calculate scores after event\n        elif choice == 'q':\n            print(\"Exiting prototype. Goodbye!\")\n            break\n        else:\n            print(\"Invalid choice. Please select 1, 2, or Q.\")",
+        "variables": [
+          "G-><Call owner_token=None token=create_synthetic_cloud_graph>",
+          "choice-><Call owner_token=UNKNOWN_VAR token=lower>"
+        ]
+      },
+      "node_86f0054c": {
+        "uid": "node_86f0054c",
+        "label": "199: simulate_incident()",
+        "name": "nap::simulate_incident",
+        "parent": "nap",
+        "is_leaf": true,
+        "is_trunk": false,
+        "source_code": "def simulate_incident(G):\n    \"\"\"Allows user to trigger a new incident on a specific node.\"\"\"\n    while True:\n        node_id_input = input(\"\\nEnter node ID to simulate a new incident (e.g., 'asset_12') or 'q' to quit: \").strip()\n        if node_id_input.lower() == 'q':\n            return False\n        if node_id_input in G.nodes:\n            severity = random.choice([\"Medium\", \"High\", \"Critical\"])\n            G.nodes[node_id_input]['incidents'].append({\n                \"description\": f\"New simulated incident on {node_id_input}\",\n                \"severity\": severity\n            })\n            print(f\"\\n>>> NEW INCIDENT simulated on {node_id_input} with '{severity}' severity. <<<\")\n            return True\n        else:\n            print(\"Invalid node ID. Please try again.\")",
+        "variables": [
+          "node_id_input-><Call owner_token=UNKNOWN_VAR token=strip>",
+          "severity-><Call owner_token=random token=choice>"
+        ]
+      },
+      "node_dc7368f6": {
+        "uid": "node_dc7368f6",
+        "label": "217: simulate_new_finding()",
+        "name": "nap::simulate_new_finding",
+        "parent": "nap",
+        "is_leaf": true,
+        "is_trunk": false,
+        "source_code": "def simulate_new_finding(G):\n    \"\"\"Allows user to add a new finding to a specific node.\"\"\"\n    while True:\n        node_id_input = input(\"\\nEnter node ID to add a new finding (e.g., 'asset_12') or 'q' to quit: \").strip()\n        if node_id_input.lower() == 'q':\n            return False\n        if node_id_input in G.nodes:\n            severity = random.choice([\"Low\", \"Medium\", \"High\"])\n            G.nodes[node_id_input]['findings'].append({\n                \"description\": f\"New misconfiguration found on {node_id_input}\",\n                \"severity\": severity\n            })\n            print(f\"\\n>>> NEW FINDING added to {node_id_input} with '{severity}' severity. <<<\")\n            return True\n        else:\n            print(\"Invalid node ID. Please try again.\")",
+        "variables": [
+          "node_id_input-><Call owner_token=UNKNOWN_VAR token=strip>",
+          "severity-><Call owner_token=random token=choice>"
+        ]
+      },
+      "node_69debfcd": {
+        "uid": "node_69debfcd",
+        "label": "168: update_all_risk_scores()",
+        "name": "nap::update_all_risk_scores",
+        "parent": "nap",
+        "is_leaf": false,
+        "is_trunk": false,
+        "source_code": "def update_all_risk_scores(G):\n    \"\"\"Iterates through all nodes and updates their risk scores.\"\"\"\n    for node_id in G.nodes:\n        G.nodes[node_id]['risk_score'] = calculate_node_risk_score(node_id, G)\n    print(\"All node risk scores updated.\")",
+        "variables": []
+      }
+    },
+    "edges": [
+      {
+        "source": "node_3beb8b5f",
+        "target": "node_385e0f99",
+        "directed": true
+      },
+      {
+        "source": "node_a1ea230a",
+        "target": "node_a1ea230a",
+        "directed": true
+      },
+      {
+        "source": "node_e3942b0b",
+        "target": "node_a1ea230a",
+        "directed": true
+      },
+      {
+        "source": "node_385e0f99",
+        "target": "node_ee017533",
+        "directed": true
+      },
+      {
+        "source": "node_385e0f99",
+        "target": "node_e3942b0b",
+        "directed": true
+      },
+      {
+        "source": "node_385e0f99",
+        "target": "node_1f2a619a",
+        "directed": true
+      },
+      {
+        "source": "node_385e0f99",
+        "target": "node_1f2a619a",
+        "directed": true
+      },
+      {
+        "source": "node_ffba6513",
+        "target": "node_385e0f99",
+        "directed": true
+      },
+      {
+        "source": "node_e5f4f3e8",
+        "target": "node_88905ee5",
+        "directed": true
+      },
+      {
+        "source": "node_88905ee5",
+        "target": "node_855c5929",
+        "directed": true
+      },
+      {
+        "source": "node_88905ee5",
+        "target": "node_9276b32a",
+        "directed": true
+      },
+      {
+        "source": "node_88905ee5",
+        "target": "node_d987daff",
+        "directed": true
+      },
+      {
+        "source": "node_88905ee5",
+        "target": "node_86f0054c",
+        "directed": true
+      },
+      {
+        "source": "node_88905ee5",
+        "target": "node_dc7368f6",
+        "directed": true
+      },
+      {
+        "source": "node_88905ee5",
+        "target": "node_69debfcd",
+        "directed": true
+      },
+      {
+        "source": "node_88905ee5",
+        "target": "node_69debfcd",
+        "directed": true
+      },
+      {
+        "source": "node_88905ee5",
+        "target": "node_69debfcd",
+        "directed": true
+      },
+      {
+        "source": "node_69debfcd",
+        "target": "node_12e38d03",
+        "directed": true
+      }
+    ]
+  }
+}

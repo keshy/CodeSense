@@ -1,0 +1,427 @@
+{
+  "graph": {
+    "directed": true,
+    "nodes": {
+      "node_11d18a00": {
+        "uid": "node_11d18a00",
+        "label": "0: (global)()",
+        "name": "FreshProject::(global)",
+        "parent": "FreshProject",
+        "is_leaf": false,
+        "is_trunk": true,
+        "source_code": null,
+        "variables": [
+          "random->UNKNOWN_MODULE",
+          "time->UNKNOWN_MODULE",
+          "requests->UNKNOWN_MODULE",
+          "city-><Call owner_token=random token=choice>",
+          "response-><Call owner_token=requests token=get>",
+          "data-><Call owner_token=response token=json>"
+        ]
+      },
+      "node_11709c05": {
+        "uid": "node_11709c05",
+        "label": "33: generate_numbers()",
+        "name": "FreshProject::generate_numbers",
+        "parent": "FreshProject",
+        "is_leaf": false,
+        "is_trunk": false,
+        "source_code": "def generate_numbers():\n    noise = measure_noise()\n    random.seed(sum(noise))\n    random_numbers = []\n    for i in range(10):  # generate 10 random numbers\n        random_numbers.append(random.random() * data[\"main\"][\"temp\"] * data[\"wind\"][\"speed\"])\n    return random_numbers",
+        "variables": [
+          "noise-><Call owner_token=None token=measure_noise>"
+        ]
+      },
+      "node_24b6a84b": {
+        "uid": "node_24b6a84b",
+        "label": "24: measure_noise()",
+        "name": "FreshProject::measure_noise",
+        "parent": "FreshProject",
+        "is_leaf": true,
+        "is_trunk": false,
+        "source_code": "def measure_noise():\n    noise = []\n    start_time = time.time()\n    while time.time() - start_time < 5:  # measure for 5 seconds\n        noise.append(random.random())\n    return noise",
+        "variables": [
+          "start_time-><Call owner_token=time token=time>"
+        ]
+      },
+      "node_aed56afd": {
+        "uid": "node_aed56afd",
+        "label": "4: __init__()",
+        "name": "ball::Ball.__init__",
+        "parent": "Ball",
+        "is_leaf": true,
+        "is_trunk": false,
+        "source_code": null,
+        "variables": [
+          "self-><Group token=Ball type=Class>"
+        ]
+      },
+      "node_1eaf274b": {
+        "uid": "node_1eaf274b",
+        "label": "21: bounce_X()",
+        "name": "ball::Ball.bounce_X",
+        "parent": "Ball",
+        "is_leaf": true,
+        "is_trunk": false,
+        "source_code": null,
+        "variables": [
+          "self-><Group token=Ball type=Class>"
+        ]
+      },
+      "node_ba1e8586": {
+        "uid": "node_ba1e8586",
+        "label": "18: bounce_Y()",
+        "name": "ball::Ball.bounce_Y",
+        "parent": "Ball",
+        "is_leaf": true,
+        "is_trunk": false,
+        "source_code": null,
+        "variables": [
+          "self-><Group token=Ball type=Class>"
+        ]
+      },
+      "node_4ee575ea": {
+        "uid": "node_4ee575ea",
+        "label": "13: move()",
+        "name": "ball::Ball.move",
+        "parent": "Ball",
+        "is_leaf": true,
+        "is_trunk": false,
+        "source_code": null,
+        "variables": [
+          "self-><Group token=Ball type=Class>"
+        ]
+      },
+      "node_197e5a7a": {
+        "uid": "node_197e5a7a",
+        "label": "25: reset_position()",
+        "name": "ball::Ball.reset_position",
+        "parent": "Ball",
+        "is_leaf": false,
+        "is_trunk": false,
+        "source_code": null,
+        "variables": [
+          "self-><Group token=Ball type=Class>"
+        ]
+      },
+      "node_08833ea6": {
+        "uid": "node_08833ea6",
+        "label": "0: (global)()",
+        "name": "main::(global)",
+        "parent": "main",
+        "is_leaf": false,
+        "is_trunk": true,
+        "source_code": null,
+        "method_summary": "",
+        "variables": [
+          "Turtle->UNKNOWN_MODULE",
+          "Screen->UNKNOWN_MODULE",
+          "Paddle-><Group token=Paddle type=Class>",
+          "Ball-><Group token=Ball type=Class>",
+          "time->UNKNOWN_MODULE",
+          "Scoreboard-><Group token=Scoreboard type=Class>",
+          "paddle-><Call owner_token=None token=Turtle>",
+          "screen-><Call owner_token=None token=Screen>",
+          "r_paddle-><Group token=Paddle type=Class>",
+          "l_paddle-><Group token=Paddle type=Class>",
+          "ball-><Group token=Ball type=Class>",
+          "scoreboard-><Group token=Scoreboard type=Class>"
+        ]
+      },
+      "node_f290a9ba": {
+        "uid": "node_f290a9ba",
+        "label": "5: __init__()",
+        "name": "paddle::Paddle.__init__",
+        "parent": "Paddle",
+        "is_leaf": true,
+        "is_trunk": false,
+        "source_code": null,
+        "variables": [
+          "self-><Group token=Paddle type=Class>"
+        ]
+      },
+      "node_cc169681": {
+        "uid": "node_cc169681",
+        "label": "0: (global)()",
+        "name": "paint::(global)",
+        "parent": "paint",
+        "is_leaf": false,
+        "is_trunk": true,
+        "source_code": null,
+        "variables": [
+          "*->UNKNOWN_MODULE",
+          "askcolor->UNKNOWN_MODULE"
+        ]
+      },
+      "node_ca285b8c": {
+        "uid": "node_ca285b8c",
+        "label": "8: __init__()",
+        "name": "paint::Paint.__init__",
+        "parent": "Paint",
+        "is_leaf": false,
+        "is_trunk": false,
+        "source_code": null,
+        "variables": [
+          "self-><Group token=Paint type=Class>"
+        ]
+      },
+      "node_c55b3f34": {
+        "uid": "node_c55b3f34",
+        "label": "55: activate_button()",
+        "name": "paint::Paint.activate_button",
+        "parent": "Paint",
+        "is_leaf": true,
+        "is_trunk": false,
+        "source_code": null,
+        "variables": [
+          "self-><Group token=Paint type=Class>"
+        ]
+      },
+      "node_7044da92": {
+        "uid": "node_7044da92",
+        "label": "32: setup()",
+        "name": "paint::Paint.setup",
+        "parent": "Paint",
+        "is_leaf": true,
+        "is_trunk": false,
+        "source_code": null,
+        "variables": [
+          "self-><Group token=Paint type=Class>"
+        ]
+      },
+      "node_7fc17926": {
+        "uid": "node_7fc17926",
+        "label": "45: use_brush()",
+        "name": "paint::Paint.use_brush",
+        "parent": "Paint",
+        "is_leaf": false,
+        "is_trunk": true,
+        "source_code": null,
+        "variables": [
+          "self-><Group token=Paint type=Class>"
+        ]
+      },
+      "node_3ed9a56d": {
+        "uid": "node_3ed9a56d",
+        "label": "52: use_eraser()",
+        "name": "paint::Paint.use_eraser",
+        "parent": "Paint",
+        "is_leaf": false,
+        "is_trunk": true,
+        "source_code": null,
+        "variables": [
+          "self-><Group token=Paint type=Class>"
+        ]
+      },
+      "node_737b686e": {
+        "uid": "node_737b686e",
+        "label": "42: use_pen()",
+        "name": "paint::Paint.use_pen",
+        "parent": "Paint",
+        "is_leaf": false,
+        "is_trunk": true,
+        "source_code": null,
+        "variables": [
+          "self-><Group token=Paint type=Class>"
+        ]
+      },
+      "node_9c0ff7bd": {
+        "uid": "node_9c0ff7bd",
+        "label": "4: __init__()",
+        "name": "scoreboard::Scoreboard.__init__",
+        "parent": "Scoreboard",
+        "is_leaf": false,
+        "is_trunk": false,
+        "source_code": null,
+        "variables": [
+          "self-><Group token=Scoreboard type=Class>"
+        ]
+      },
+      "node_333fd183": {
+        "uid": "node_333fd183",
+        "label": "20: l_point()",
+        "name": "scoreboard::Scoreboard.l_point",
+        "parent": "Scoreboard",
+        "is_leaf": false,
+        "is_trunk": false,
+        "source_code": null,
+        "variables": [
+          "self-><Group token=Scoreboard type=Class>"
+        ]
+      },
+      "node_18dc96d3": {
+        "uid": "node_18dc96d3",
+        "label": "24: r_point()",
+        "name": "scoreboard::Scoreboard.r_point",
+        "parent": "Scoreboard",
+        "is_leaf": false,
+        "is_trunk": false,
+        "source_code": null,
+        "variables": [
+          "self-><Group token=Scoreboard type=Class>"
+        ]
+      },
+      "node_f4dfad6a": {
+        "uid": "node_f4dfad6a",
+        "label": "13: update_scoreboard()",
+        "name": "scoreboard::Scoreboard.update_scoreboard",
+        "parent": "Scoreboard",
+        "is_leaf": true,
+        "is_trunk": false,
+        "source_code": null,
+        "variables": [
+          "self-><Group token=Scoreboard type=Class>"
+        ]
+      },
+      "node_9c6485bb": {
+        "uid": "node_9c6485bb",
+        "label": "0: (global)()",
+        "name": "source-code::(global)",
+        "parent": "source-code",
+        "is_leaf": false,
+        "is_trunk": true,
+        "source_code": null,
+        "variables": [
+          "pyshorteners->UNKNOWN_MODULE",
+          "urlopen->UNKNOWN_MODULE",
+          "num-><Call owner_token=None token=input>",
+          "link-><Call owner_token=None token=input>"
+        ]
+      },
+      "node_130dc7df": {
+        "uid": "node_130dc7df",
+        "label": "4: link_shortener()",
+        "name": "source-code::link_shortener",
+        "parent": "source-code",
+        "is_leaf": true,
+        "is_trunk": false,
+        "source_code": "def link_shortener(link):\n    shortener = pyshorteners.Shortener() #class object\n    short_link = shortener.tinyurl.short(link)  #shorting the link\n    \n    #Display\n    print('\\t[+] Real Link: ' + link)\n    print('\\t[+] Shortened Link: ' + short_link)",
+        "variables": [
+          "shortener-><Call owner_token=pyshorteners token=Shortener>",
+          "short_link-><Call owner_token=shortener token=short>"
+        ]
+      }
+    },
+    "edges": [
+      {
+        "source": "node_11d18a00",
+        "target": "node_11709c05",
+        "directed": true
+      },
+      {
+        "source": "node_11709c05",
+        "target": "node_24b6a84b",
+        "directed": true
+      },
+      {
+        "source": "node_197e5a7a",
+        "target": "node_1eaf274b",
+        "directed": true
+      },
+      {
+        "source": "node_08833ea6",
+        "target": "node_aed56afd",
+        "directed": true
+      },
+      {
+        "source": "node_08833ea6",
+        "target": "node_1eaf274b",
+        "directed": true
+      },
+      {
+        "source": "node_08833ea6",
+        "target": "node_ba1e8586",
+        "directed": true
+      },
+      {
+        "source": "node_08833ea6",
+        "target": "node_4ee575ea",
+        "directed": true
+      },
+      {
+        "source": "node_08833ea6",
+        "target": "node_197e5a7a",
+        "directed": true
+      },
+      {
+        "source": "node_08833ea6",
+        "target": "node_197e5a7a",
+        "directed": true
+      },
+      {
+        "source": "node_08833ea6",
+        "target": "node_f290a9ba",
+        "directed": true
+      },
+      {
+        "source": "node_08833ea6",
+        "target": "node_f290a9ba",
+        "directed": true
+      },
+      {
+        "source": "node_08833ea6",
+        "target": "node_7044da92",
+        "directed": true
+      },
+      {
+        "source": "node_08833ea6",
+        "target": "node_9c0ff7bd",
+        "directed": true
+      },
+      {
+        "source": "node_08833ea6",
+        "target": "node_333fd183",
+        "directed": true
+      },
+      {
+        "source": "node_08833ea6",
+        "target": "node_18dc96d3",
+        "directed": true
+      },
+      {
+        "source": "node_cc169681",
+        "target": "node_ca285b8c",
+        "directed": true
+      },
+      {
+        "source": "node_ca285b8c",
+        "target": "node_7044da92",
+        "directed": true
+      },
+      {
+        "source": "node_7fc17926",
+        "target": "node_c55b3f34",
+        "directed": true
+      },
+      {
+        "source": "node_3ed9a56d",
+        "target": "node_c55b3f34",
+        "directed": true
+      },
+      {
+        "source": "node_737b686e",
+        "target": "node_c55b3f34",
+        "directed": true
+      },
+      {
+        "source": "node_9c0ff7bd",
+        "target": "node_f4dfad6a",
+        "directed": true
+      },
+      {
+        "source": "node_333fd183",
+        "target": "node_f4dfad6a",
+        "directed": true
+      },
+      {
+        "source": "node_18dc96d3",
+        "target": "node_f4dfad6a",
+        "directed": true
+      },
+      {
+        "source": "node_9c6485bb",
+        "target": "node_130dc7df",
+        "directed": true
+      }
+    ]
+  }
+}

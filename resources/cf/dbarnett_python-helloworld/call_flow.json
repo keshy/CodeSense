@@ -1,0 +1,66 @@
+{
+  "graph": {
+    "directed": true,
+    "nodes": {
+      "node_dc5efcd6": {
+        "uid": "node_dc5efcd6",
+        "label": "0: (global)()",
+        "name": "__init__::(global)",
+        "parent": "__init__",
+        "is_leaf": false,
+        "is_trunk": true,
+        "source_code": null,
+        "variables": [
+          "__version__-><Call owner_token=None token=__read_version_txt>"
+        ]
+      },
+      "node_db888da0": {
+        "uid": "node_db888da0",
+        "label": "1: __read_version_txt()",
+        "name": "__init__::__read_version_txt",
+        "parent": "__init__",
+        "is_leaf": true,
+        "is_trunk": false,
+        "source_code": "def __read_version_txt():\n  import pkgutil\n  return pkgutil.get_data('helloworld', 'VERSION.txt').decode('utf-8').strip()",
+        "variables": [
+          "pkgutil->UNKNOWN_MODULE"
+        ]
+      },
+      "node_39dce9d7": {
+        "uid": "node_39dce9d7",
+        "label": "0: (global)()",
+        "name": "helloworld::(global)",
+        "parent": "helloworld",
+        "is_leaf": false,
+        "is_trunk": true,
+        "source_code": null,
+        "variables": [
+          "sys->UNKNOWN_MODULE",
+          "helloworld.main->UNKNOWN_MODULE"
+        ]
+      },
+      "node_a2354d91": {
+        "uid": "node_a2354d91",
+        "label": "15: main()",
+        "name": "main::main",
+        "parent": "main",
+        "is_leaf": true,
+        "is_trunk": false,
+        "source_code": "def main(argv=None):\n    if argv is None:\n        argv = sys.argv\n\n    # The helloworld program doesn't expect any arguments.\n    # This just checks for the special --version and --help arguments and\n    # ensures the user hasn't passed any other unrecognized arguments.\n    parser.parse_args(argv[1:])\n\n    print(\"Hello, world\")\n\n    return 0",
+        "variables": []
+      }
+    },
+    "edges": [
+      {
+        "source": "node_dc5efcd6",
+        "target": "node_db888da0",
+        "directed": true
+      },
+      {
+        "source": "node_39dce9d7",
+        "target": "node_a2354d91",
+        "directed": true
+      }
+    ]
+  }
+}
